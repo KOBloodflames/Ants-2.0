@@ -3,7 +3,7 @@ loadtime 3000
 turntime 1000
 rows 60
 cols 90
-turns 1
+turns 1000
 viewradius2 77
 attackradius2 5
 spawnradius2 1
@@ -81,26 +81,19 @@ w 40 8
 w 40 9
 h 32 6 0
 a 32 6 0
-f 30 5
-f 33 12
-f 34 9
-f 36 8
-f 37 9
+f 24 9
+f 29 3
+f 33 88
+f 38 5
 go
-end
-players 4
-score 1 None None None
-status survived None None None
-playerturns 1 None None None
+turn 2
 w 28 88
 w 29 87
 w 35 87
 w 40 2
 h 32 6 0
 a 32 5 0
-f 30 5
-f 33 12
-f 34 9
-f 36 8
-f 37 9
+f 29 3
+f 33 88
+f 38 5
 go

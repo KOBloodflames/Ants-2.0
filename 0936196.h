@@ -49,6 +49,7 @@ void print_bfs(worldmap w);
 route *search(worldmap w, Node *current, cell_type cell);
 route *search_territory(worldmap w, Node *current);
 route *search_vision(worldmap w, Node *current);
+route *search_food(worldmap w, Node *current);
 
 worldmap send_orders_bfs(worldmap w);
 

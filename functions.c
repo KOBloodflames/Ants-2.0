@@ -6,9 +6,9 @@
 #include "0936196.h"
 
 worldmap initialize_map(worldmap world){
-	world.map = (cell **) malloc(world.rows * sizeof(cell*));
+	world.map = (cell **) calloc(world.rows, sizeof(cell*));
 	for(int i = 0; i < world.rows; i++){
-		world.map[i] = (cell *) malloc(world.cols * sizeof(cell));
+		world.map[i] = (cell *) calloc(world.cols, sizeof(cell));
 	}
 	if(world.map == NULL){
 		printf("Error allocating memory");
@@ -400,6 +400,135 @@ route *search_vision(worldmap w, Node *current){
 	
 }
 
+route *search_food(worldmap w, Node *current){
+
+	//fprintf(stderr,"searching for a way to food using BFS\n");
+	w = bfs_reset(w);
+	ant *queue = List_create();
+	List_insert(queue);
+	//List_print(queue);
+	queue->head->bfs->n = 0;
+	queue->head->bfs->x = current->item->x;
+	queue->head->bfs->y = current->item->y;
+	queue->counter = 1;
+	w.map[current->item->y][current->item->x].bfs = 0;
+	w.map[current->item->y][current->item->x].bfsvisited = 1;
+	int noroute = 0;
+	int longest = 5;
+	//FOR MAP, VISITED = 0
+	int maxdepth = 200-2*w.ants->counter;
+	int iterations = 0;
+	clock_t start = clock(), diff;
+	while(1){
+		iterations++;
+		int x = queue->head->bfs->x;
+		int y = queue->head->bfs->y;
+		if(queue->counter == 0){
+			//fprintf(stderr,"No route possible\n");
+			noroute = 1;
+			break;
+		}
+		if(w.map[queue->head->bfs->y][queue->head->bfs->x].type == CELL_FOOD){ //queue->head->bfs->x == Xn && queue->head->bfs->y == Yn
+			//fprintf(stderr,"found food on (%d,%d)\n",Xn,Yn);		
+			longest = queue->head->bfs->n;
+			break;
+		}else{
+
+			if(w.map[mod(y+1,w.rows)][x].type != CELL_WATER && w.map[mod(y+1,w.rows)][x].bfsvisited == 0 && w.map[mod(y+1,w.rows)][x].danger == 0){
+				List_append(queue);
+				queue->head->prev->bfs->n = queue->head->bfs->n + 1;
+				w.map[mod(y+1,w.rows)][x].bfs = queue->head->prev->bfs->n;
+				queue->head->prev->bfs->x = x;
+				queue->head->prev->bfs->y = mod(y+1,w.rows);
+				w.map[mod(y+1,w.rows)][x].bfsvisited = 1;
+			}
+			if(w.map[mod(y-1,w.rows)][x].type != CELL_WATER && w.map[mod(y-1,w.rows)][x].bfsvisited == 0 && w.map[mod(y-1,w.rows)][x].danger == 0){
+				List_append(queue);
+				queue->head->prev->bfs->n = queue->head->bfs->n + 1;
+				w.map[mod(y-1,w.rows)][x].bfs = queue->head->prev->bfs->n;
+				queue->head->prev->bfs->x = x;
+				queue->head->prev->bfs->y = mod(y-1,w.rows);
+				w.map[mod(y-1,w.rows)][x].bfsvisited = 1;
+			}
+			if(w.map[y][mod(x+1,w.cols)].type != CELL_WATER && w.map[y][mod(x+1,w.cols)].bfsvisited == 0 && w.map[y][mod(x+1,w.cols)].danger == 0){
+				List_append(queue);
+				queue->head->prev->bfs->n = queue->head->bfs->n + 1;
+				w.map[y][mod(x+1,w.cols)].bfs = queue->head->prev->bfs->n;
+				queue->head->prev->bfs->x = mod(x+1,w.cols);
+				queue->head->prev->bfs->y = y;
+				w.map[y][mod(x+1,w.cols)].bfsvisited = 1;
+			}
+			if(w.map[y][mod(x-1,w.cols)].type != CELL_WATER && w.map[y][mod(x-1,w.cols)].bfsvisited == 0 && w.map[y][mod(x-1,w.cols)].danger == 0){
+				List_append(queue);
+				queue->head->prev->bfs->n = queue->head->bfs->n + 1;
+				w.map[y][mod(x-1,w.cols)].bfs = queue->head->prev->bfs->n;
+				queue->head->prev->bfs->x = mod(x-1,w.cols);
+				queue->head->prev->bfs->y = y;
+				w.map[y][mod(x-1,w.cols)].bfsvisited = 1;
+			}
+			List_remove(queue,queue->head);
+		}
+	}
+
+	diff = clock() - start;
+	int msec = diff * 1000 / CLOCKS_PER_SEC;
+	//fprintf(stderr, "Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+	//fprintf(stderr, "The BFS took %d loops\n", iterations);
+	if(!noroute){
+		//print_bfs(w);
+		route *routed = (route *)malloc(sizeof(route)*1);
+		char *routes = (char *)malloc(sizeof(char)*longest);
+		routed->routelist = routes;
+		int Xl = queue->head->bfs->x;
+		int Yl = queue->head->bfs->y;
+		int num = longest;
+
+		//fprintf(stderr, "the route will take %d turns \nroute : ", longest);
+		routed->x = Xl;
+		routed->y = Yl;
+		for(int i = longest-1; i >= 0; i--){
+			if(w.map[mod(Yl+1,w.rows)][Xl].bfs == num-1){
+				routed->routelist[i] = 'N';
+				num--;
+				Yl = mod(Yl+1,w.rows);
+			}else if(w.map[mod(Yl-1,w.rows)][Xl].bfs == num-1){
+				routed->routelist[i] = 'S';
+				num--;
+				Yl = mod(Yl-1,w.rows);
+			}else if(w.map[Yl][mod(Xl+1,w.cols)].bfs == num-1){
+				routed->routelist[i] = 'W';
+				num--;
+				Xl = mod(Xl+1,w.cols);
+			}else if(w.map[Yl][mod(Xl-1,w.cols)].bfs == num-1){
+				routed->routelist[i] = 'E';
+				num--;
+				Xl = mod(Xl-1,w.cols);
+			}else{
+				//fprintf(stderr, "Something went wrong in the BFS!\n");
+			}
+			//fprintf(stderr, "%c", routed->routelist[i]);
+		}
+		//fprintf(stderr, "\n");
+		List_destroy(queue);
+		routed->distance = longest;
+		return routed;
+	}
+	else{
+		//fprintf(stderr, "Returning x\n");
+		route *wrong = (route *)malloc(sizeof(route));
+		wrong->routelist = "x";
+		List_destroy(queue);
+		return wrong;
+	}
+
+	
+}
+
+
+
+
+
+
 worldmap search_friends(worldmap w, Node *current){
 
 	//fprintf(stderr,"searching for a way to food using BFS\n");
@@ -494,17 +623,17 @@ worldmap bfs_reset(worldmap w){
 
 worldmap check_territory(worldmap w){
 	int territory = 0;
-	for(int a = 0; a < w.rows; a += 8){
-		for(int b = 0; b < w.cols; b += 8){
+	for(int a = 0; a < (w.rows-8); a += 8){
+		for(int b = 0; b < (w.cols-8); b += 8){
 			int vision = 0;
 			for(int i = a; i < a+8; i++){
-				for(int j = b; j < b+8; b++){
+				for(int j = b; j < b+8; j++){
 					if(w.map[i][j].vision != 0){
 						vision++;
 					}
 					if(vision >= 32){
 						for(int i = a; i < a+8; i++){
-							for(int j = b; j < b+8; b++){	
+							for(int j = b; j < b+8; j++){	
 								w.map[i][j].ant = territory;
 							}
 						}
@@ -632,7 +761,7 @@ void read_initialization(game_settings *s){
 			end2 = end;
 		}
 		//printf("end 2:%d\nend 1:%d\n", end2, end);
-		key = (char *) malloc(sizeof(char)*end);
+		key = (char *) calloc(end,sizeof(char));
 		for(int i = 0; i < end; i++){
 			//printf("I can go through the first loop!");
 			key[i] = line[i];
